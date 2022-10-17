@@ -1,0 +1,13 @@
+---
+title: "dandelion"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+library(reticulate)
+reticulate::use_condaenv('dandelion')
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
