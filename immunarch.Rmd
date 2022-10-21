@@ -1,0 +1,141 @@
+---
+title: "immunarch"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r}
+library(immunarch)
+```
+
+# Input Data
+
+```{r}
+# Based on the github error suggestion, only use the filtered contig file from cellranger
+# https://github.com/immunomind/immunarch/issues/92
+
+# One row corresponds to one clonal type
+# A metadata df is also created for multiple samples
+
+vdj_dir = "~/data/10X_bcr_vdj_example/sc5p_v2_hs_B_1k_b/filtered_contig_annotations.csv"
+vdj <- immunarch::repLoad(vdj_dir)
+vdj
+```
+
+
+
+
+```{r}
+vdj$data$filtered_contig_annotations %>%
+  dplyr::select(raw_clonotype_id, V.name, D.name, J.name, CDR3.aa, Proportion) %>%
+  dplyr::arrange(-Proportion)
+```
+
+```{r}
+vdj_dir = "~/data/10X_bcr_vdj_example/sc5p_v2_hs_B_1k_b/all_contig_annotations.csv"
+vdj <- immunarch::repLoad(vdj_dir)
+vdj
+```
+
+
+```{r}
+# Dummy data for immunarch workflow
+data("bcrdata")
+```
+
+```{r}
+bcrdata$data
+```
+
+
+# QC & EDA
+
+```{r}
+repExplore(immdata$data, "clones") %>% vis()
+```
+
+```{r}
+repExplore(immdata$data, "volume") %>% vis()
+```
+
+```{r}
+# Filtering out noncoding CDR3 clonotypes
+repFilter(immdata, .method = "by.clonotype", .query = list(CDR3.aa = exclude("partial", "out_of_frame")))$meta
+```
+
+
+```{r}
+repExplore(immdata$data, .method = "len", .col = "aa") %>% vis()
+```
+
+```{r}
+repClonality(immdata$data, "homeo") %>% vis()
+```
+
+```{r}
+repExplore(immdata$data, "count") %>% vis()
+```
+
+# Downsampling
+
+Some analysis doesn't work if there is huge variation in the number of clonaltypes per sample. Don't do this if the data is very small
+
+```{r}
+repSample(immdata$data, "downsample") %>% repExplore("clones") %>% vis()
+```
+
+# Public Clonotype Analysis
+Goal: Estimate the similarity of samples using the number of shared or "public" clonotypes
+
+```{r}
+# Shared clonotypes (need downsampling)
+# Can use CDR3, CDR3+V, CDR3+J
+
+repOverlap(immdata$data) %>% vis()
+```
+
+```{r}
+repOverlap(immdata$data) %>% vis(.plot = "heatmap2")
+```
+
+```{r}
+# Jaccard Index - estimate simiarilty of sample sequences using the number of shared clonaltypes (doesn't take into account abundance)
+
+repOverlap(immdata$data, "jaccard") %>% vis()
+```
+
+```{r}
+# Morisita-Horn index - estimate similarity between samples using shared clonotype sequences and their abundance
+
+repOverlap(immdata$data, "morisita") %>% vis()
+```
+
+# Clonality Analysis
+
+```{r}
+# Proportion of the most abundant clonotypes
+# Red is the top 10 clonaltypes occupy ~10% of all the clonotypes
+
+repClonality(immdata$data, "top") %>% vis()
+```
+
+# Diversity Analysis
+
+```{r}
+repDiversity(immdata$data, "chao1") %>% vis()
+```
+
+```{r}
+repDiversity(immdata$data, "raref") %>% vis()
+```
+
+# Gene Usage Analysis
+Link gene segments to response prediction and prognosis biomarkers
+
+```{r}
+geneUsage(immdata$data) %>% vis()
+```
+
+
+
+
